@@ -6,6 +6,7 @@ import os
 
 import pandas as pd
 import numpy as np
+import re
 
 dataManager.initialize_data_manager() # 임시
 geminiManager.initialize_gemini_manager() # 임시
@@ -134,6 +135,16 @@ def ScoreInputUI():
                 print("값 걸림")
                 st.warning(f"{key}의 값이 잘못되었습니다")
                 return
+            
+        if not re.match(r'^[a-zA-Z가-힣\s]+$', name) or len(name) > 20:
+            st.error("⚠️ 이름은 한글과 영어만 가능하며, 20자 이내여야 합니다. (특수문자 및 숫자 입력 불가)")
+            return
+
+        if len(num) != 6:
+            st.error("⚠️ 잘못된 학번입니다. (학번은 6자리로 입력해주세요.)")
+            return
+            
+        
 
         # if name == "" or num == "" or kor == "" or eng == "" or math == "" or sci == "" or his == "":
         #     st.warning("⚠️ 이름과 학번, 모든 과목의 점수를 입력해주세요.")
@@ -159,6 +170,53 @@ def ScoreInputUI():
 # 4.총점과 평균
 # =========================================================================
  
+def ScoreSumAvgGradeUI():
+    st.markdown("### 📊 성적 및 등급 상세 조회")
+    
+    # 1. 이름 및 학번 영역 (상단 배치)
+    info_col1, info_col2 = st.columns(2)
+    with info_col1:
+        st.text_input("학생 이름", value="홍길동", disabled=True, key="view_name")
+    with info_col2:
+        st.text_input("학번", value="202601", disabled=True, key="view_num")
+        
+    st.markdown("---")
+    
+    # 2. 과목 및 과목 등급 영역 (순서대로 가로 배치)
+    # 한 줄에 5개 과목을 표현하기 위해 5개 컬럼 생성
+    subj_col1, subj_col2, subj_col3, subj_col4, subj_col5 = st.columns(5)
+    
+    with subj_col1:
+        st.metric(label="국어 점수", value="85점")
+        st.caption("등급: **B**")
+        
+    with subj_col2:
+        st.metric(label="영어 점수", value="90점")
+        st.caption("등급: **A**")
+        
+    with subj_col3:
+        st.metric(label="수학 점수", value="95점")
+        st.caption("등급: **A+**")
+        
+    with subj_col4:
+        st.metric(label="과학 점수", value="80점")
+        st.caption("등급: **B**")
+        
+    with subj_col5:
+        st.metric(label="역사 점수", value="88점")
+        st.caption("등급: **B+**")
+        
+    st.markdown("---")
+    
+    # 3. 평균 및 총점 영역 (하단 배치)
+    result_col1, result_col2 = st.columns(2)
+    with result_col1:
+        st.metric(label="평균 점수", value="87.6점")
+    with result_col2:
+        st.metric(label="총점", value="438점")
+    
+
+    #/TODO 값은 예시로 넣은거고 진짜 할 때는 너가 바꿔줘
 
 
  # 요약
@@ -230,6 +288,16 @@ def AskAiUI():
 # 4. Main UI
 def MainUI():
 
+    # 우측 상단 로그아웃 버튼 배치
+    top_col1, top_col2 = st.columns([4, 1])
+    with top_col2:
+        st.write("") 
+        if st.button("🔒 로그아웃", type="primary", use_container_width=True):
+            st.session_state["logged_in_user"] = -1
+            st.session_state["current_page"] = "login"
+            st.session_state["sub_action"] = None
+            st.rerun()
+
     if st.session_state["logged_in_user"] == -1:
         #비회원 로그인
         st.title("게스트님 환영합니다!")
@@ -258,7 +326,7 @@ def MainUI():
         st.session_state["sub_action"] = None
  
     
-    # 학생 점수 입력 & 모든 학생 점수 출력
+    # 1행: 점수 입력 및 전체 출력
     row1_col1, row1_col2 = st.columns(2)
     with row1_col1:
         if st.button("📝 학생 점수 입력", use_container_width=True):
@@ -267,36 +335,25 @@ def MainUI():
         if st.button("📋 모든 학생 점수 출력", use_container_width=True):
             st.session_state["sub_action"] = "print_all"
  
-    # 2행: 학생검색 & 총점과 평균
+    # 2행: 검색 및 [총점과 평균 + 학점 통합 버튼]
     row2_col1, row2_col2 = st.columns(2)
     with row2_col1:
         if st.button("🔍 학생검색", use_container_width=True):
             st.session_state["sub_action"] = "search"
     with row2_col2:
-        if st.button("📊 총점과 평균", use_container_width=True):
-            st.session_state["sub_action"] = "calc"
+        if st.button("📊 총점/평균 및 학점", use_container_width=True):
+            st.session_state["sub_action"] = "calc_grade"
  
-    # 3행: 학점 & 석차 나누기
+    # 3행: 석차 나누기 및 [상단 배치된 요약 버튼]
     row3_col1, row3_col2 = st.columns(2)
     with row3_col1:
-        if st.button("🅰️ 학점", use_container_width=True):
-            st.session_state["sub_action"] = "grade"
-    with row3_col2:
         if st.button("👑 석차 나누기", use_container_width=True):
             st.session_state["sub_action"] = "rank"
- 
-    # 4행: 필터링 & 요약
-    row4_col1, row4_col2 = st.columns(2)
-    with row4_col1:
-        if st.button("⏳ 필터링", use_container_width=True):
-            st.session_state["sub_action"] = "filter"
-    with row4_col2:
+    with row3_col2:
         if st.button("📌 요약", use_container_width=True):
             st.session_state["sub_action"] = "summary"
-
-
  
-    # 5행: AI 질문하기 (단독 가로 긴 버튼)
+    # 4행: 하단 배치 및 가로로 길어진 AI 질문하기 버튼
     if st.button("🤖 AI 질문하기", use_container_width=True):
         st.session_state["sub_action"] = "ai"
  
@@ -335,26 +392,15 @@ def MainUI():
             return
         st.info("안내: 학생 검색 기능입니다.")
  
-    elif action == "calc":      #평균과 총점
+    elif action == "calc_grade":      #평균과 총점 및 학점
         st.markdown("### 점수 총점 및 평균")
-
-        # student_data = 
-        # if student_data:
-        #     student_data = student_data[0]
-        #     st.dataframe(student_data, use_container_width=True)
- 
-    elif action == "grade":
-        st.info("안내: 학점 기능입니다.")
+        ScoreSumAvgGradeUI()
  
     elif action == "rank":
         st.info("안내: 석차 나누기 기능입니다.")
  
-    elif action == "filter":
-        st.info("안내: 필터링 기능입니다.")
- 
     elif action == "summary":
         st.info("안내: 요약 기능입니다.")
-
         ScoreSummary()
  
     elif action == "ai":
