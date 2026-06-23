@@ -1,15 +1,29 @@
-name: Test Action
+name: Run Tests
 
 on:
   push:
     branches:
       - main
+      - backend
+  pull_request:
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4 
-      
-      - run: python --version
+      - name: 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: Python 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: |
+          pip install -r requirements.txt
+
+      - name: 테스트 실행
+        run: |
+          pytest
